@@ -1,7 +1,6 @@
 package com.Spring.SecureSpringRestAPI.model;
 
 import jakarta.persistence.*;
-
 import java.util.Set;
 
 @Entity
