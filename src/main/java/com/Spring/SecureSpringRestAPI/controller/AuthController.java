@@ -1,30 +1,38 @@
 package com.Spring.SecureSpringRestAPI.controller;
 
-import com.Spring.SecureSpringRestAPI.security.config.JwtTokenUtil;
-import org.springframework.http.HttpStatus;
+import com.Spring.SecureSpringRestAPI.model.Usuario;
+import com.Spring.SecureSpringRestAPI.service.IAuthService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
-    private final JwtTokenUtil jwtTokenUtil;
+    private final IAuthService authService;
 
-    public AuthController(JwtTokenUtil jwtTokenUtil) {
-        this.jwtTokenUtil = jwtTokenUtil;
+    @Autowired
+    public AuthController(IAuthService authService) {
+        this.authService = authService;
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestParam String username, @RequestParam String password) {
+        String token = authService.login(username, password);
+        return ResponseEntity.ok(token);
+    }
+
+    @PostMapping("/register")
+    @PreAuthorize("hasAuthority('PERMISO_CREAR_USUARIO')")  // Solo usuarios con este permiso pueden registrar
+    public ResponseEntity<?> register(@RequestBody Usuario usuario) {
+        Usuario nuevoUsuario = authService.register(usuario);
+        return ResponseEntity.ok(nuevoUsuario);
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<?> refreshAccessToken(@RequestParam("refreshToken") String refreshToken) {
-        String username = jwtTokenUtil.extractUsername(refreshToken);
-        if (jwtTokenUtil.validateToken(refreshToken, username)) {
-            String newAccessToken = jwtTokenUtil.generateAccessToken(username);
-            return ResponseEntity.ok(newAccessToken);
-        } else {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Refresh token is invalid or expired");
-        }
+    public ResponseEntity<?> refreshAccessToken(@RequestParam String refreshToken) {
+        String newAccessToken = authService.refreshAccessToken(refreshToken);
+        return ResponseEntity.ok(newAccessToken);
     }
 }
